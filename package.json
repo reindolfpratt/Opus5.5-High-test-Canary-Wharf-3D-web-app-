@@ -1,0 +1,22 @@
+{
+  "name": "canary-wharf-3d",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Photoreal-leaning, human-scale procedural 3D recreation of Canary Wharf, London (Three.js + WebGL2)",
+  "type": "module",
+  "scripts": {
+    "start": "vite --port 5173 --open",
+    "dev": "vite --port 5173",
+    "build": "vite build",
+    "preview": "vite preview --port 4173"
+  },
+  "dependencies": {
+    "three": "0.187.0"
+  },
+  "devDependencies": {
+    "vite": "^7.1.0"
+  },
+  "engines": {
+    "node": ">=20.19.0"
+  }
+}

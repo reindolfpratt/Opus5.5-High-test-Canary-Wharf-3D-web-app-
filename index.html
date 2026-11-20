@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Canary Wharf — London</title>
+  <style>
+    html, body { margin: 0; height: 100%; overflow: hidden; background: #0b0c0e; color: #e8eaed; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+    #c { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+    #ui { position: fixed; inset: 0; pointer-events: none; }
+    #status { position: absolute; left: 18px; top: 14px; font-size: 12px; letter-spacing: .04em; color: rgba(255,255,255,.75); text-shadow: 0 1px 2px rgba(0,0,0,.6); }
+    #status::before { content: 'CANARY WHARF · LONDON  —  '; color: rgba(255,255,255,.95); font-weight: 600; }
+    #fps { position: absolute; right: 18px; top: 14px; font-size: 11px; color: rgba(255,255,255,.55); font-variant-numeric: tabular-nums; text-shadow: 0 1px 2px rgba(0,0,0,.6); }
+    #minimap { position: absolute; right: 16px; bottom: 16px; width: 170px; height: 170px; opacity: .92; }
+    #hint { position: absolute; left: 18px; bottom: 16px; font-size: 11px; color: rgba(255,255,255,.6); text-shadow: 0 1px 2px rgba(0,0,0,.7); line-height: 1.6; }
+    #hint b { color: rgba(255,255,255,.9); font-weight: 600; }
+    #hint { transition: opacity 2s; } #hint.dim { opacity: .3; }
+    #cross { position: absolute; left: 50%; top: 50%; width: 4px; height: 4px; margin: -2px 0 0 -2px; border-radius: 50%; background: rgba(255,255,255,.7); display: none; }
+    #overlay { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; background: radial-gradient(ellipse at center, rgba(5,8,12,.35), rgba(5,8,12,.75)); cursor: pointer; }
+    #overlay .card { text-align: center; max-width: 520px; padding: 28px 34px; }
+    #overlay h1 { margin: 0 0 4px; font-weight: 300; font-size: 40px; letter-spacing: .08em; }
+    #overlay .sub { font-size: 13px; letter-spacing: .3em; color: rgba(255,255,255,.6); margin-bottom: 26px; }
+    #overlay .go { display: inline-block; padding: 10px 22px; border: 1px solid rgba(255,255,255,.5); border-radius: 999px; font-size: 13px; letter-spacing: .12em; margin-bottom: 22px; }
+    #overlay .keys { display: grid; grid-template-columns: auto auto; gap: 4px 18px; font-size: 12px; color: rgba(255,255,255,.7); text-align: left; justify-content: center; }
+    #overlay .keys span:nth-child(odd) { color: #fff; font-weight: 600; text-align: right; }
+    #overlay { gap: 28px; flex-wrap: wrap; }
+    #compare { background: rgba(10,12,16,.72); border: 1px solid rgba(255,255,255,.12); border-radius: 12px; padding: 16px 18px; max-height: 78vh; overflow: auto; width: 420px; max-width: calc(100vw - 32px); cursor: default; }
+    #compare .h { font-size: 13px; letter-spacing: .12em; text-transform: uppercase; margin-bottom: 4px; }
+    #compare .sub2 { font-size: 11px; color: rgba(255,255,255,.55); margin-bottom: 10px; line-height: 1.4; }
+    #compare .row { display: flex; align-items: center; gap: 8px; padding: 5px 0; border-top: 1px solid rgba(255,255,255,.07); font-size: 12px; }
+    #compare .row .n { flex: 1; color: rgba(255,255,255,.88); }
+    #compare button { font: inherit; font-size: 11px; color: #fff; background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.25); border-radius: 999px; padding: 3px 10px; cursor: pointer; }
+    #compare button:hover { background: rgba(255,255,255,.2); }
+    #compare a, #here, .lm a { color: #8fc7ff; text-decoration: none; }
+    #compare a:hover, #here:hover, .lm a:hover { text-decoration: underline; }
+    #compare a { font-size: 11px; white-space: nowrap; }
+    #labels { position: absolute; inset: 0; overflow: hidden; }
+    .lm { position: absolute; left: 0; top: 0; display: none; text-align: center; white-space: nowrap; pointer-events: auto; background: rgba(8,10,14,.6); border: 1px solid rgba(255,255,255,.18); border-radius: 8px; padding: 4px 9px 5px; font-size: 11px; line-height: 1.35; }
+    .lm .n { display: block; color: #fff; font-weight: 600; letter-spacing: .02em; }
+    .lm a { font-size: 10.5px; }
+    #here { position: absolute; left: 18px; bottom: 38px; font-size: 11px; pointer-events: auto; text-shadow: 0 1px 2px rgba(0,0,0,.7); }
+    #here b { display: inline-block; margin-left: 4px; padding: 0 4px; border: 1px solid rgba(143,199,255,.6); border-radius: 3px; font-size: 10px; }
+    #loading { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #0b0c0e; z-index: 10; }
+    #loading .msg { font-size: 13px; color: rgba(255,255,255,.65); letter-spacing: .08em; margin-top: 14px; }
+    #loading .t { font-weight: 300; font-size: 28px; letter-spacing: .12em; }
+  </style>
+</head>
+<body>
+  <canvas id="c"></canvas>
+  <div id="ui">
+    <div id="status"></div>
+    <div id="fps"></div>
+    <div id="cross"></div>
+    <div id="hint"><b>WASD / ↑↓←→</b> move · <b>Mouse</b> look · <b>Shift</b> sprint · <b>Space</b> jump · <b>N</b> time of day · <b>F</b> fly · <b>1/2/3</b> quality · <b>B</b> DoF · <b>M</b> mute · <b>H</b> hide UI</div>
+    <canvas id="minimap" width="340" height="340"></canvas>
+    <div id="labels"></div>
+    <a id="here" href="#" target="_blank" rel="noopener">Street View of this spot ↗ <b>G</b></a>
+  </div>
+  <div id="overlay">
+    <div class="card">
+      <h1>CANARY WHARF</h1>
+      <div class="sub">LONDON E14</div>
+      <div class="go">CLICK TO EXPLORE</div>
+      <div class="keys">
+        <span>WASD / Arrows</span><span>Walk / strafe</span>
+        <span>Mouse</span><span>Look (Esc to release)</span>
+        <span>Shift</span><span>Sprint</span>
+        <span>Space</span><span>Jump (fly: up, C down)</span>
+        <span>N</span><span>Day → Golden hour → Night</span>
+        <span>F</span><span>Toggle walk / fly</span>
+        <span>1 / 2 / 3</span><span>Quality: Low / High / Ultra</span>
+        <span>B · M · H</span><span>Depth of field · Mute · Hide UI</span>
+        <span>G</span><span>Open Street View of where you stand</span>
+      </div>
+    </div>
+    <div id="compare">
+      <div class="h">Compare with Google Street View</div>
+      <div class="sub2">“Go here” puts you at the matching viewpoint in the model; the link opens the real place in a new tab.</div>
+      <div id="compare-list"></div>
+    </div>
+  </div>
+  <div id="loading"><div class="t">CANARY WHARF</div><div class="msg">Starting…</div></div>
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
